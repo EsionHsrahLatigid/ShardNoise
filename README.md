@@ -42,7 +42,7 @@ Output is clamped to finite bounded samples, and parameter inputs are sanitized 
 - Xcode / macOS SDK for AU builds
 - A local YUP checkout at `../yup`, or network access for the pinned fallback checkout
 
-Windows CI uses Visual Studio 2022 on `windows-2025` for x64 Debug tests and Release Standalone/VST3 bundle builds.
+Windows CI uses Visual Studio 2026 on `windows-2025` for x64 Debug tests and Release Standalone/VST3 bundle builds.
 
 YUP is pinned to commit `9a1c9bc699b6a714f6f52486462d98a140c8bf95` when the adjacent checkout is absent. YUP is ISC-licensed; its own license and all fetched dependency licenses remain authoritative.
 
