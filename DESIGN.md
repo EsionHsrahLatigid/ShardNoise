@@ -5,7 +5,7 @@
 - Status: Active
 - Last refreshed: 2026-08-08
 - Primary product surfaces: macOS Standalone, VST3 editor, AUv2 editor
-- Evidence reviewed: `README.md`, `source/violent/plugins/ShardNoisePlugin.*`, `source/violent/ParameterGridEditor.*`, `include/violent/ShardNoiseEngine.h`, `tests/ShardNoiseEngineTests.cpp`, `tests/ShardNoisePluginTests.cpp`
+- Evidence reviewed: `README.md`, `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `source/violent/plugins/ShardNoisePlugin.*`, `source/violent/ParameterGridEditor.*`, `include/violent/ShardNoiseEngine.h`, `tests/ShardNoiseEngineTests.cpp`, `tests/ShardNoisePluginTests.cpp`
 
 ## Brand
 
@@ -90,6 +90,13 @@
 - Performance constraints: no allocation, file access, locks, or non-deterministic calls on the audio thread; UI trigger commands and output meter state cross threads only through processor-owned atomics
 - Compatibility constraints: macOS arm64 currently targeted; state version changes require backward-compatible migration
 - Test/screenshot expectations: engine regression tests, plugin bridge trigger tests, three-format build/signature checks, Standalone launch and screenshot inspection
+
+## CI And Release Provenance
+
+- CI cost policy: trigger CI only on `main` pushes, pull requests, and manual dispatch; classify docs-only changes before allocating macOS and Windows runners; keep a summary job as the required stable result.
+- Heavy build policy: run macOS arm64 and Windows x64 bundle/test jobs only for build-impacting changes or manual forced runs.
+- Artifact policy: upload `ShardNoise-latest-macos-arm64` and `ShardNoise-latest-windows-x64` artifacts with a 14-day retention window; each artifact must include one ZIP and a strict `SHA256SUMS.txt` line for that ZIP.
+- Release policy: never build in the tag workflow. Resolve the normalized semver tag to a commit SHA, require the same version in CMake, require one successful `main` push CI run at the exact `head_sha`, verify both unexpired artifact IDs, validate SHA256 and ZIP integrity, upload exact draft assets, then publish.
 
 ## Open Questions
 
