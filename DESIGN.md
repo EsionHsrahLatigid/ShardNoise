@@ -5,7 +5,7 @@
 - Status: Active
 - Last refreshed: 2026-08-08
 - Primary product surfaces: macOS Standalone, VST3 editor, AUv2 editor
-- Evidence reviewed: `README.md`, `source/violent/plugins/ShardNoisePlugin.*`, `source/violent/ParameterGridEditor.*`, `include/violent/ShardNoiseEngine.h`, `tests/ShardNoiseEngineTests.cpp`
+- Evidence reviewed: `README.md`, `source/violent/plugins/ShardNoisePlugin.*`, `source/violent/ParameterGridEditor.*`, `include/violent/ShardNoiseEngine.h`, `tests/ShardNoiseEngineTests.cpp`, `tests/ShardNoisePluginTests.cpp`
 
 ## Brand
 
@@ -22,14 +22,14 @@
 ## Personas And Jobs
 
 - Primary personas: experimental electronic musicians, sound designers, noise performers
-- User jobs: trigger repeatable shards from MIDI; automate density, fold, alias, and stereo behavior; preserve preset states across hosts
+- User jobs: trigger repeatable shards from MIDI or the standalone audition gate; automate density, fold, alias, and stereo behavior; preserve preset states across hosts
 - Key contexts of use: loud monitoring, DAW automation, standalone improvisation, rapid MIDI pattern exploration
 
 ## Information Architecture
 
 - Primary navigation: one-page instrument panel
-- Core routes/screens: parameter grid only
-- Content hierarchy: spectral placement and edge first, burst/scatter density next, alias/stereo/output last
+- Core routes/screens: parameter grid with a compact trigger/meter strip
+- Content hierarchy: standalone trigger and output activity at the header edge; spectral placement and edge first, burst/scatter density next, alias/stereo/output last
 
 ## Design Principles
 
@@ -49,15 +49,15 @@
 
 ## Components
 
-- Existing components to reuse: YUP `Slider`, `Label`, `AudioProcessorEditor`
-- New/changed components: optional future DSP-state visualization
-- Variants and states: triggered shard, released tail, preset selection, host automation
+- Existing components to reuse: YUP `Slider`, `Label`, `TextButton`, `AudioProcessorEditor`
+- New/changed components: momentary trigger button and output activity meter
+- Variants and states: standalone gate held/released, triggered shard, released tail, preset selection, host automation
 - Token/component ownership: editor-local constants until YUP exposes a stable theme/token workflow
 
 ## Accessibility
 
 - Target standard: practical desktop accessibility within current YUP capabilities
-- Keyboard/focus behavior: host/YUP defaults; no hidden pointer-only mode switches
+- Keyboard/focus behavior: Spacebar mirrors the momentary trigger while the editor has keyboard focus; no hidden pointer-only mode switches
 - Contrast/readability: labels and numeric values remain readable against the dark field
 - Screen-reader semantics: constrained by current YUP accessibility support; control names must remain explicit
 - Reduced motion and sensory considerations: no full-screen flashes; future animation must be state-driven and disableable
@@ -71,7 +71,7 @@
 ## Interaction States
 
 - Loading: immediate deterministic initialization
-- Empty: silent until MIDI note-on
+- Empty: silent until MIDI note-on or standalone trigger
 - Error: invalid/non-finite parameter values clamp safely
 - Success: parameter values update visibly and audio changes deterministically
 - Disabled: no hidden disabled controls
@@ -87,10 +87,10 @@
 
 - Framework/styling system: C++20 and YUP GUI/audio processor modules
 - Design-token constraints: current YUP slider styling is theme-owned; values use separate labels
-- Performance constraints: no allocation, file access, locks, or non-deterministic calls on the audio thread
+- Performance constraints: no allocation, file access, locks, or non-deterministic calls on the audio thread; UI trigger commands and output meter state cross threads only through processor-owned atomics
 - Compatibility constraints: macOS arm64 currently targeted; state version changes require backward-compatible migration
-- Test/screenshot expectations: engine regression tests, three-format build/signature checks, Standalone launch and screenshot inspection
+- Test/screenshot expectations: engine regression tests, plugin bridge trigger tests, three-format build/signature checks, Standalone launch and screenshot inspection
 
 ## Open Questions
 
-- [ ] Which DSP state signals are safe and useful to expose visually without audio-thread synchronization hazards?
+- [ ] Should the output activity meter later become a calibrated loudness/true-peak meter, or stay a lightweight performance indicator?

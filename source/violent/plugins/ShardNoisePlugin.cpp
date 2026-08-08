@@ -14,6 +14,7 @@ namespace
 constexpr std::array<char, 4> stateMagic { 'S', 'H', 'N', '1' };
 constexpr int stateVersion = 1;
 constexpr int engineUpdateCadence = 16;
+constexpr int standaloneTriggerNote = 60;
 constexpr std::size_t presetParameterCount = 7;
 
 constexpr std::array<std::array<float, presetParameterCount>, 4> presetValues {{
@@ -126,6 +127,7 @@ void ShardNoisePlugin::processBlock (yup::AudioProcessContext<float>& context)
     auto& audio = context.audio;
     const auto numSamples = audio.getNumSamples();
     const auto numChannels = audio.getNumChannels();
+    auto blockPeak = 0.0f;
 
     for (std::size_t i = 0; i < parameterHandles.size(); ++i)
         parameterHandles[i].prepareBlock (context.params, parameters[i]->getIndexInContainer());
@@ -141,6 +143,9 @@ void ShardNoisePlugin::processBlock (yup::AudioProcessContext<float>& context)
         if ((sample % engineUpdateCadence) == 0)
             pushEngineParameters();
 
+        consumeStandaloneTriggerCommands();
+        consumePendingStandaloneRestart();
+
         while (midi != midiEnd && (*midi).samplePosition <= sample)
         {
             handleMidiMessage ((*midi).getMessage());
@@ -153,17 +158,26 @@ void ShardNoisePlugin::processBlock (yup::AudioProcessContext<float>& context)
             left[sample] = frame.left;
         if (right != nullptr)
             right[sample] = frame.right;
+        blockPeak = std::max (blockPeak, std::max (std::fabs (frame.left), std::fabs (frame.right)));
 
         for (int channel = 2; channel < numChannels; ++channel)
             audio.getWritePointer (channel)[sample] = 0.0f;
     }
 
+    outputPeakMilli.store (static_cast<int> (std::clamp (blockPeak, 0.0f, 1.0f) * 1000.0f + 0.5f),
+                           std::memory_order_release);
     context.midi.clear();
 }
 
 void ShardNoisePlugin::flush()
 {
     lastNote = -1;
+    gateOwner = GateOwner::none;
+    restartStandaloneTriggerOnNextSample = false;
+    standaloneTriggerGate.store (false, std::memory_order_release);
+    consumedStandaloneTriggerOnCount = standaloneTriggerOnCount.load (std::memory_order_acquire);
+    consumedStandaloneTriggerOffCount = standaloneTriggerOffCount.load (std::memory_order_acquire);
+    outputPeakMilli.store (0, std::memory_order_release);
     engine.reset();
 }
 
@@ -238,8 +252,28 @@ yup::AudioProcessorEditor* ShardNoisePlugin::createEditor()
 {
     return new ParameterGridEditor (*this,
                                     "ShardNoise",
-                                    "High-frequency MIDI shard synth. Keep monitoring conservative.",
+                                    "Standalone trigger: button or Space. External MIDI remains active.",
                                     0xffff4a1cu);
+}
+
+void ShardNoisePlugin::setStandaloneTriggerGate (bool shouldBeHeld) noexcept
+{
+    const auto previous = standaloneTriggerGate.exchange (shouldBeHeld, std::memory_order_acq_rel);
+    if (previous == shouldBeHeld)
+        return;
+
+    auto& counter = shouldBeHeld ? standaloneTriggerOnCount : standaloneTriggerOffCount;
+    counter.fetch_add (1u, std::memory_order_release);
+}
+
+bool ShardNoisePlugin::getStandaloneTriggerGate() const noexcept
+{
+    return standaloneTriggerGate.load (std::memory_order_acquire);
+}
+
+float ShardNoisePlugin::getOutputPeak() const noexcept
+{
+    return static_cast<float> (outputPeakMilli.load (std::memory_order_acquire)) * 0.001f;
 }
 
 void ShardNoisePlugin::updateHandlesForSample (int samplePosition)
@@ -265,11 +299,77 @@ void ShardNoisePlugin::pushEngineParameters()
     engine.setParameters (engineParameters);
 }
 
+void ShardNoisePlugin::consumeStandaloneTriggerCommands() noexcept
+{
+    const auto onCount = standaloneTriggerOnCount.load (std::memory_order_acquire);
+    const auto offCount = standaloneTriggerOffCount.load (std::memory_order_acquire);
+    const auto sawOn = onCount != consumedStandaloneTriggerOnCount;
+    const auto sawOff = offCount != consumedStandaloneTriggerOffCount;
+
+    if (! sawOn && ! sawOff)
+        return;
+
+    consumedStandaloneTriggerOnCount = onCount;
+    consumedStandaloneTriggerOffCount = offCount;
+
+    if (gateOwner == GateOwner::midi)
+        return;
+
+    if (sawOn && sawOff)
+    {
+        if (standaloneTriggerGate.load (std::memory_order_acquire))
+        {
+            stopStandaloneTrigger();
+            startStandaloneTrigger();
+        }
+        else
+        {
+            startStandaloneTrigger();
+            stopStandaloneTrigger();
+        }
+        return;
+    }
+
+    if (sawOn)
+        startStandaloneTrigger();
+    else
+        stopStandaloneTrigger();
+}
+
+void ShardNoisePlugin::consumePendingStandaloneRestart() noexcept
+{
+    if (! restartStandaloneTriggerOnNextSample)
+        return;
+
+    restartStandaloneTriggerOnNextSample = false;
+    if (standaloneTriggerGate.load (std::memory_order_acquire))
+        startStandaloneTrigger();
+}
+
+void ShardNoisePlugin::startStandaloneTrigger() noexcept
+{
+    restartStandaloneTriggerOnNextSample = false;
+    gateOwner = GateOwner::standalone;
+    engine.noteOn (standaloneTriggerNote, 1.0f);
+}
+
+void ShardNoisePlugin::stopStandaloneTrigger() noexcept
+{
+    restartStandaloneTriggerOnNextSample = false;
+    if (gateOwner == GateOwner::standalone)
+    {
+        engine.noteOff();
+        gateOwner = GateOwner::none;
+    }
+}
+
 void ShardNoisePlugin::handleMidiMessage (const yup::MidiMessage& message) noexcept
 {
     if (message.isNoteOn())
     {
         lastNote = std::clamp (message.getNoteNumber(), 0, 127);
+        restartStandaloneTriggerOnNextSample = false;
+        gateOwner = GateOwner::midi;
         engine.noteOn (lastNote, message.getFloatVelocity());
     }
     else if (message.isNoteOff())
@@ -277,7 +377,12 @@ void ShardNoisePlugin::handleMidiMessage (const yup::MidiMessage& message) noexc
         const auto note = std::clamp (message.getNoteNumber(), 0, 127);
         if (note == lastNote)
         {
-            engine.noteOff();
+            if (gateOwner == GateOwner::midi)
+            {
+                engine.noteOff();
+                gateOwner = GateOwner::none;
+                restartStandaloneTriggerOnNextSample = standaloneTriggerGate.load (std::memory_order_acquire);
+            }
             lastNote = -1;
         }
     }

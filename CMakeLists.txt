@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.31)
 
 if(APPLE)
-    project(ShardNoise VERSION 0.1.1 LANGUAGES C CXX OBJC OBJCXX)
+    project(ShardNoise VERSION 0.2.0 LANGUAGES C CXX OBJC OBJCXX)
 else()
-    project(ShardNoise VERSION 0.1.1 LANGUAGES C CXX)
+    project(ShardNoise VERSION 0.2.0 LANGUAGES C CXX)
 endif()
 
 option(SHARDNOISE_BUILD_PLUGIN "Build the YUP Standalone/VST3/AU targets" ON)
@@ -116,6 +116,18 @@ if(SHARDNOISE_BUILD_PLUGIN)
     target_include_directories(shardnoise_shared INTERFACE
         "${CMAKE_CURRENT_LIST_DIR}/include"
         "${CMAKE_CURRENT_LIST_DIR}/source")
+
+    if(SHARDNOISE_BUILD_TESTS)
+        add_executable(shardnoise_plugin_tests
+            tests/ShardNoisePluginTests.cpp)
+        target_link_libraries(shardnoise_plugin_tests PRIVATE shardnoise_shared sdl::sdl)
+        target_compile_features(shardnoise_plugin_tests PRIVATE cxx_std_20)
+        if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+            target_compile_options(shardnoise_plugin_tests PRIVATE -Wall -Wextra -Wpedantic)
+        endif()
+        enable_test_assertions(shardnoise_plugin_tests)
+        add_test(NAME shardnoise_plugin_tests COMMAND shardnoise_plugin_tests)
+    endif()
 
     if(APPLE AND SHARDNOISE_ADHOC_SIGN)
         find_program(SHARDNOISE_CODESIGN_EXECUTABLE codesign REQUIRED)

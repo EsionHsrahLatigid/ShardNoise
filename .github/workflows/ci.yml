@@ -36,6 +36,7 @@ jobs:
         run: >
           cmake --build build/plugin-release --config Release --parallel
           --target shardnoise_engine_tests
+          shardnoise_plugin_tests
           shardnoise_standalone_plugin
           shardnoise_vst3_plugin
           shardnoise_au_plugin
@@ -105,6 +106,7 @@ jobs:
         run: >
           cmake --build build/windows-release --config Release --parallel
           --target shardnoise_engine_tests
+          shardnoise_plugin_tests
           shardnoise_standalone_plugin
           shardnoise_vst3_plugin
 
