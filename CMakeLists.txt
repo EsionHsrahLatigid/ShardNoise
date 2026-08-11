@@ -79,12 +79,12 @@ if(SHARDNOISE_BUILD_PLUGIN)
         TARGET_NAME shardnoise
         TARGET_VERSION ${PROJECT_VERSION}
         TARGET_IDE_GROUP "ShardNoise"
-        TARGET_APP_ID "audio.2bit.shardnoise"
-        TARGET_APP_NAMESPACE "audio.2bit"
+        TARGET_APP_ID "jp.ehl.shardnoise"
+        TARGET_APP_NAMESPACE "jp.ehl"
         TARGET_CXX_STANDARD 20
-        PLUGIN_ID "audio.2bit.ShardNoise"
+        PLUGIN_ID "jp.ehl.shardnoise"
         PLUGIN_NAME "ShardNoise"
-        PLUGIN_VENDOR "2bit"
+        PLUGIN_VENDOR "ehl_"
         PLUGIN_EMAIL ""
         PLUGIN_VERSION "${PROJECT_VERSION}"
         PLUGIN_DESCRIPTION "MIDI-triggered high-frequency binary noise instrument"
@@ -95,7 +95,7 @@ if(SHARDNOISE_BUILD_PLUGIN)
         PLUGIN_CREATE_VST3 ON
         PLUGIN_CREATE_AU ${SHARDNOISE_CREATE_AU}
         PLUGIN_AU_SUBTYPE "ShRd"
-        PLUGIN_AU_MANUFACTURER "2Bit"
+        PLUGIN_AU_MANUFACTURER "EHL1"
         PLUGIN_AU_SANDBOX_SAFE ON
         PLUGIN_CREATE_AUv3 OFF
         PLUGIN_CREATE_LV2 OFF

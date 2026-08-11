@@ -35,8 +35,8 @@ The editor trigger does not inject MIDI into the host path. It writes processor-
 
 | Surface | Value |
 | --- | --- |
-| App ID | `audio.2bit.shardnoise` |
-| Plugin ID | `audio.2bit.ShardNoise` |
+| App ID | `jp.ehl.shardnoise` |
+| Plugin ID | `jp.ehl.shardnoise` |
 | AU subtype | `ShRd` |
 | AU manufacturer | `2Bit` |
 | Formats | Standalone, VST3, AUv2 on macOS |
