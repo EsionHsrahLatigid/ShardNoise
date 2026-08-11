@@ -129,6 +129,15 @@ if(SHARDNOISE_BUILD_PLUGIN)
         add_test(NAME shardnoise_plugin_tests COMMAND shardnoise_plugin_tests)
     endif()
 
+    include(cmake/EhlYupArtifactLayout.cmake)
+    ehl_yup_add_artifact_target(
+        TARGET ehl_stage_products
+        PRODUCT ShardNoise
+        SLUG shardnoise
+        STANDALONE_TARGET shardnoise_standalone_plugin
+        VST3_TARGET shardnoise_vst3_plugin
+        AU_TARGET shardnoise_au_plugin)
+
     if(APPLE AND SHARDNOISE_ADHOC_SIGN)
         find_program(SHARDNOISE_CODESIGN_EXECUTABLE codesign REQUIRED)
         add_custom_command(TARGET shardnoise_vst3_plugin POST_BUILD

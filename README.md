@@ -75,9 +75,9 @@ ctest --preset plugin-release
 
 Artifacts:
 
-- `build/plugin-release/shardnoise_standalone_plugin.app`
-- `build/plugin-release/VST3/Release/shardnoise_vst3_plugin.vst3`
-- `build/plugin-release/shardnoise_au_plugin.component`
+- `artifacts/plugin-release/macos-arm64/standalone/shardnoise_standalone_plugin.app`
+- `artifacts/plugin-release/macos-arm64/vst3/shardnoise_vst3_plugin.vst3`
+- `artifacts/plugin-release/macos-arm64/au/shardnoise_au_plugin.component`
 
 CI runs only for `main` pushes, pull requests, and manual dispatch. A path classifier skips the macOS and Windows bundle jobs for docs-only changes while still publishing a stable summary job result. Heavy CI uploads `ShardNoise-latest-macos-arm64` and `ShardNoise-latest-windows-x64` artifacts for 14 days; each artifact contains one latest ZIP plus `SHA256SUMS.txt`.
 
@@ -89,8 +89,8 @@ Release tags do not build. The Release workflow accepts a pushed `v*` tag or a m
 Local installation is intentionally separate from the build:
 
 ```sh
-cp -R build/plugin-release/VST3/Release/shardnoise_vst3_plugin.vst3 "$HOME/Library/Audio/Plug-Ins/VST3/"
-cp -R build/plugin-release/shardnoise_au_plugin.component "$HOME/Library/Audio/Plug-Ins/Components/"
+cp -R artifacts/plugin-release/macos-arm64/vst3/shardnoise_vst3_plugin.vst3 "$HOME/Library/Audio/Plug-Ins/VST3/"
+cp -R artifacts/plugin-release/macos-arm64/au/shardnoise_au_plugin.component "$HOME/Library/Audio/Plug-Ins/Components/"
 ```
 
 The local macOS build ad-hoc signs the standalone app and VST3 bundle. Distribution still requires your Developer ID signing and notarization workflow.

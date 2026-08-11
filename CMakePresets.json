@@ -38,7 +38,12 @@
     },
     {
       "name": "plugin-release",
-      "configurePreset": "plugin-release"
+      "configurePreset": "plugin-release",
+      "targets": [
+        "ehl_stage_products",
+        "shardnoise_engine_tests",
+        "shardnoise_plugin_tests"
+      ]
     }
   ],
   "testPresets": [
