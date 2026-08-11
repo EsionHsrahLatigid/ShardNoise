@@ -88,7 +88,7 @@ if(SHARDNOISE_BUILD_PLUGIN)
         PLUGIN_EMAIL ""
         PLUGIN_VERSION "${PROJECT_VERSION}"
         PLUGIN_DESCRIPTION "MIDI-triggered high-frequency binary noise instrument"
-        PLUGIN_URL "https://github.com/2bbb/ShardNoise"
+        PLUGIN_URL "https://github.com/EsionHsrahLatigid/ShardNoise"
         PLUGIN_IS_SYNTH ON
         PLUGIN_IS_MONO OFF
         PLUGIN_CREATE_CLAP OFF
