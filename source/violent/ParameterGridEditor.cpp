@@ -1,5 +1,6 @@
 #include "violent/ParameterGridEditor.h"
 
+#include <ehl/yup_plugin_ui/EhlPluginTheme.h>
 #include "violent/plugins/ShardNoisePlugin.h"
 
 #include <algorithm>
@@ -48,67 +49,22 @@ public:
 
     void paintButton (yup::Graphics& graphics) override
     {
-        yup::TextButton::paintButton (graphics);
-        if (gateActive)
-        {
-            graphics.setFillColor (0x55ff4a1cu);
-            graphics.fillRect (getLocalBounds().to<float>().reduced (3.0f));
-        }
+        const auto bounds = getLocalBounds().to<float>();
+        const auto active = gateActive || isButtonDown();
+        const auto over = isButtonOver();
+
+        graphics.setFillColor (active ? ehl::ui::paper : (over ? ehl::ui::mid : ehl::ui::low));
+        graphics.fillRect (bounds);
+        graphics.setStrokeColor (hasKeyboardFocus() ? ehl::ui::paper : ehl::ui::mid);
+        graphics.setStrokeWidth (hasKeyboardFocus() ? 2.0f : 1.0f);
+        graphics.strokeRect (bounds.reduced (1.0f));
+
+        graphics.setFillColor (active || over ? ehl::ui::ink : ehl::ui::paper);
+        graphics.fillFittedText (getStyledText(), getTextBounds());
     }
 
 private:
     bool gateActive = false;
-};
-
-class OutputMeter final : public yup::Component
-{
-public:
-    void setLevel (float newLevel)
-    {
-        level = std::clamp (newLevel, 0.0f, 1.0f);
-        repaint();
-    }
-
-    void paint (yup::Graphics& graphics) override
-    {
-        const auto bounds = getLocalBounds().to<float>();
-        graphics.setFillColor (0xff171a1fu);
-        graphics.fillRect (bounds);
-        graphics.setFillColor (0xffff4a1cu);
-        graphics.fillRect (bounds.withWidth (bounds.getWidth() * level));
-    }
-
-private:
-    float level = 0.0f;
-};
-
-class EditorSlider final : public yup::Slider
-{
-public:
-    EditorSlider()
-        : yup::Slider (yup::Slider::RotaryVerticalDrag)
-    {
-        setClickingGrabFocus (false);
-    }
-
-    void mouseDown (const yup::MouseEvent& event) override
-    {
-        yup::Slider::mouseDown (event);
-        restoreParentFocus();
-    }
-
-    void mouseUp (const yup::MouseEvent& event) override
-    {
-        yup::Slider::mouseUp (event);
-        restoreParentFocus();
-    }
-
-private:
-    void restoreParentFocus()
-    {
-        if (auto* parent = getParentComponent())
-            parent->takeKeyboardFocus();
-    }
 };
 } // namespace
 
@@ -118,9 +74,10 @@ ParameterGridEditor::ParameterGridEditor (yup::AudioProcessor& processor,
                                           std::uint32_t newAccentColor)
     : title (newTitle)
     , warning (newWarning)
-    , accentColor (newAccentColor)
     , shardNoiseProcessor (dynamic_cast<ShardNoisePlugin*> (&processor))
 {
+    (void) newAccentColor;
+
     setWantsKeyboardFocus (true);
 
     const auto processorParameters = processor.getParameters();
@@ -129,11 +86,13 @@ ParameterGridEditor::ParameterGridEditor (yup::AudioProcessor& processor,
     titleLabel = std::make_unique<yup::Label>();
     titleLabel->setText (title, yup::dontSendNotification);
     titleLabel->setJustification (yup::Justification::centerLeft);
+    ehl::ui::styleLabel (*titleLabel, ehl::ui::TextRole::primary);
     addAndMakeVisible (*titleLabel);
 
     warningLabel = std::make_unique<yup::Label>();
     warningLabel->setText (warning, yup::dontSendNotification);
     warningLabel->setJustification (yup::Justification::centerLeft);
+    ehl::ui::styleLabel (*warningLabel, ehl::ui::TextRole::secondary);
     addAndMakeVisible (*warningLabel);
 
     if (shardNoiseProcessor != nullptr)
@@ -151,9 +110,10 @@ ParameterGridEditor::ParameterGridEditor (yup::AudioProcessor& processor,
         meterLabel = std::make_unique<yup::Label>();
         meterLabel->setText ("Output", yup::dontSendNotification);
         meterLabel->setJustification (yup::Justification::centerLeft);
+        ehl::ui::styleLabel (*meterLabel, ehl::ui::TextRole::secondary);
         addAndMakeVisible (*meterLabel);
 
-        outputMeter = std::make_unique<OutputMeter>();
+        outputMeter = std::make_unique<ehl::ui::StripMeter> (ehl::ui::paper);
         addAndMakeVisible (*outputMeter);
     }
 
@@ -166,10 +126,11 @@ ParameterGridEditor::ParameterGridEditor (yup::AudioProcessor& processor,
         auto label = std::make_unique<yup::Label>();
         label->setText (parameter->getName(), yup::dontSendNotification);
         label->setJustification (yup::Justification::center);
+        ehl::ui::styleLabel (*label, ehl::ui::TextRole::secondary);
         addAndMakeVisible (*label);
         labels.push_back (std::move (label));
 
-        auto slider = std::make_unique<EditorSlider>();
+        auto slider = std::make_unique<ehl::ui::PixelSlider> (yup::Slider::RotaryVerticalDrag);
         slider->setRange (parameter->getMinimumValue(),
                           parameter->getMaximumValue(),
                           parameter->isStepped() ? 1.0 : 0.0);
@@ -178,18 +139,28 @@ ParameterGridEditor::ParameterGridEditor (yup::AudioProcessor& processor,
         slider->setTextBoxStyle (yup::Slider::NoTextBox);
         slider->setPopupDisplayEnabled (false);
         slider->setMouseCursor (yup::MouseCursor::Hand);
-        slider->onDragStart = [parameter] (const yup::MouseEvent&) { parameter->beginChangeGesture(); };
+        slider->setClickingGrabFocus (false);
+        slider->onDragStart = [this, parameter] (const yup::MouseEvent&)
+        {
+            takeKeyboardFocus();
+            parameter->beginChangeGesture();
+        };
         slider->onValueChanged = [parameter] (double value)
         {
             parameter->setValueNotifyingHost (static_cast<float> (value));
         };
-        slider->onDragEnd = [parameter] (const yup::MouseEvent&) { parameter->endChangeGesture(); };
+        slider->onDragEnd = [this, parameter] (const yup::MouseEvent&)
+        {
+            takeKeyboardFocus();
+            parameter->endChangeGesture();
+        };
         addAndMakeVisible (*slider);
         sliders.push_back (std::move (slider));
 
         auto valueLabel = std::make_unique<yup::Label>();
         valueLabel->setText (parameter->toString(), yup::dontSendNotification);
         valueLabel->setJustification (yup::Justification::center);
+        ehl::ui::styleLabel (*valueLabel, ehl::ui::TextRole::primary);
         addAndMakeVisible (*valueLabel);
         valueLabels.push_back (std::move (valueLabel));
     }
@@ -217,28 +188,23 @@ bool ParameterGridEditor::shouldPreserveAspectRatio() const
 
 yup::Size<int> ParameterGridEditor::getPreferredSize() const
 {
-    return { 940, 520 };
+    return ehl::ui::preferredSize;
 }
 
 void ParameterGridEditor::paint (yup::Graphics& graphics)
 {
-    graphics.setFillColor (0xff0a0b0du);
-    graphics.fillAll();
-
-    graphics.setFillColor (accentColor);
-    graphics.fillRect (0.0f, 0.0f, getWidth(), 5.0f);
-
+    ehl::ui::paintEditorBackground (graphics, getWidth(), getHeight());
 }
 
 void ParameterGridEditor::resized()
 {
-    constexpr int columns = 5;
-    constexpr float margin = 20.0f;
-    constexpr float top = 78.0f;
-    constexpr float gap = 12.0f;
+    constexpr int columns = 7;
+    constexpr float margin = 16.0f;
+    constexpr float top = 128.0f;
+    constexpr float gap = 8.0f;
     constexpr float labelHeight = 24.0f;
     constexpr float valueHeight = 24.0f;
-    constexpr float controlGap = 4.0f;
+    constexpr float controlSize = 72.0f;
 
     const auto bounds = getLocalBounds();
     const auto cellWidth = (bounds.getWidth() - 2.0f * margin - gap * (columns - 1)) / columns;
@@ -246,14 +212,14 @@ void ParameterGridEditor::resized()
     const auto availableHeight = bounds.getHeight() - top - margin;
     const auto cellHeight = (availableHeight - gap * (rows - 1)) / rows;
 
-    titleLabel->setBounds (24.0f, 12.0f, bounds.getWidth() - 48.0f, 30.0f);
-    warningLabel->setBounds (24.0f, 43.0f, bounds.getWidth() - 280.0f, 24.0f);
+    titleLabel->setBounds (20.0f, 8.0f, bounds.getWidth() - 40.0f, 28.0f);
+    warningLabel->setBounds (20.0f, 36.0f, bounds.getWidth() - 280.0f, 20.0f);
 
     if (triggerButton != nullptr && meterLabel != nullptr && outputMeter != nullptr)
     {
-        triggerButton->setBounds (bounds.getWidth() - 236.0f, 18.0f, 86.0f, 34.0f);
-        meterLabel->setBounds (bounds.getWidth() - 136.0f, 16.0f, 64.0f, 18.0f);
-        outputMeter->setBounds (bounds.getWidth() - 136.0f, 38.0f, 112.0f, 12.0f);
+        triggerButton->setBounds (margin, 72.0f, 96.0f, 28.0f);
+        meterLabel->setBounds (margin + 112.0f, 68.0f, 56.0f, 16.0f);
+        outputMeter->setBounds (margin + 168.0f, 76.0f, std::max (120.0f, bounds.getWidth() - margin - 192.0f), 12.0f);
     }
 
     for (std::size_t i = 0; i < sliders.size(); ++i)
@@ -262,14 +228,20 @@ void ParameterGridEditor::resized()
         const auto row = static_cast<int> (i) / columns;
         const auto x = margin + column * (cellWidth + gap);
         const auto y = top + row * (cellHeight + gap);
-        const auto controlHeight = cellHeight - labelHeight - valueHeight - 2.0f * controlGap;
-        const auto controlSize = std::max (20.0f, std::min (cellWidth - 8.0f, controlHeight));
-        const auto controlX = x + 0.5f * (cellWidth - controlSize);
-        const auto controlY = y + labelHeight + controlGap;
+        const auto inset = rows > 1 ? 4.0f : 12.0f;
+        const auto labelY = y + inset;
+        const auto valueY = y + cellHeight - valueHeight - inset;
+        const auto controlTop = labelY + labelHeight;
+        const auto controlBottom = valueY;
+        const auto fittedControlSize = std::min ({ controlSize,
+                                                   cellWidth - 8.0f,
+                                                   std::max (20.0f, controlBottom - controlTop) });
+        const auto controlX = x + 0.5f * (cellWidth - fittedControlSize);
+        const auto controlY = controlTop + 0.5f * (controlBottom - controlTop - fittedControlSize);
 
-        labels[i]->setBounds (x, y, cellWidth, labelHeight);
-        sliders[i]->setBounds (controlX, controlY, controlSize, controlSize);
-        valueLabels[i]->setBounds (x, y + cellHeight - valueHeight, cellWidth, valueHeight);
+        labels[i]->setBounds (x + 2.0f, labelY, cellWidth - 4.0f, labelHeight);
+        sliders[i]->setBounds (controlX, controlY, fittedControlSize, fittedControlSize);
+        valueLabels[i]->setBounds (x + 2.0f, valueY, cellWidth - 4.0f, valueHeight);
     }
 }
 
@@ -322,8 +294,8 @@ void ParameterGridEditor::timerCallback()
         if (auto* button = dynamic_cast<MomentaryTriggerButton*> (triggerButton.get()))
             button->setGateActive (gate);
 
-        if (auto* meter = dynamic_cast<OutputMeter*> (outputMeter.get()))
-            meter->setLevel (std::max (shardNoiseProcessor->getOutputPeak(), gate ? 0.08f : 0.0f));
+        if (outputMeter != nullptr)
+            outputMeter->setLevel (std::max (shardNoiseProcessor->getOutputPeak(), gate ? 0.08f : 0.0f));
     }
 }
 

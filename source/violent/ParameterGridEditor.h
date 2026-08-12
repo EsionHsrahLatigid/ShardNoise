@@ -11,6 +11,16 @@ namespace violent::plugin
 
 class ShardNoisePlugin;
 
+} // namespace violent::plugin
+
+namespace ehl::ui
+{
+class StripMeter;
+}
+
+namespace violent::plugin
+{
+
 /** Reusable parameter-grid shell; product DSP and parameter semantics stay processor-owned. */
 class ParameterGridEditor final
     : public yup::AudioProcessorEditor
@@ -38,7 +48,6 @@ private:
 
     yup::String title;
     yup::String warning;
-    std::uint32_t accentColor = 0xffff3300u;
     ShardNoisePlugin* shardNoiseProcessor = nullptr;
     bool mouseGateHeld = false;
     bool spaceGateHeld = false;
@@ -46,7 +55,7 @@ private:
     std::unique_ptr<yup::Label> warningLabel;
     std::unique_ptr<yup::TextButton> triggerButton;
     std::unique_ptr<yup::Label> meterLabel;
-    std::unique_ptr<yup::Component> outputMeter;
+    std::unique_ptr<ehl::ui::StripMeter> outputMeter;
     std::vector<yup::AudioParameter::Ptr> parameters;
     std::vector<std::unique_ptr<yup::Label>> labels;
     std::vector<std::unique_ptr<yup::Slider>> sliders;

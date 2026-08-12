@@ -38,7 +38,8 @@ The editor trigger does not inject MIDI into the host path. It writes processor-
 | App ID | `jp.ehl.shardnoise` |
 | Plugin ID | `jp.ehl.shardnoise` |
 | AU subtype | `ShRd` |
-| AU manufacturer | `2Bit` |
+| Plugin vendor | `ehl_` |
+| AU manufacturer | `EHL1` |
 | Formats | Standalone, VST3, AUv2 on macOS |
 | Type | Synth, stereo output, MIDI input |
 
@@ -56,6 +57,12 @@ Windows CI uses Visual Studio 2026 on `windows-2025` for x64 Debug tests and Rel
 YUP is pinned to commit `9a1c9bc699b6a714f6f52486462d98a140c8bf95` when the adjacent checkout is absent. YUP is ISC-licensed; its own license and all fetched dependency licenses remain authoritative.
 
 ## Build And Test
+
+Clone with `--recurse-submodules`, or initialize the shared [yup-ehl-design-module](https://github.com/EsionHsrahLatigid/yup-ehl-design-module) before configuring:
+
+```sh
+git submodule update --init
+```
 
 Fast DSP-only loop:
 

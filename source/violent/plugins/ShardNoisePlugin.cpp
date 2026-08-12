@@ -253,7 +253,7 @@ yup::AudioProcessorEditor* ShardNoisePlugin::createEditor()
     return new ParameterGridEditor (*this,
                                     "ShardNoise",
                                     "Standalone trigger: button or Space. External MIDI remains active.",
-                                    0xffff4a1cu);
+                                    0xfff2f2f0u);
 }
 
 void ShardNoisePlugin::setStandaloneTriggerGate (bool shouldBeHeld) noexcept
