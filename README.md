@@ -54,7 +54,7 @@ The editor trigger does not inject MIDI into the host path. It writes processor-
 
 Windows CI uses Visual Studio 2026 on `windows-2025` for x64 Debug tests and Release Standalone/VST3 bundle builds.
 
-YUP is pinned to commit `9a1c9bc699b6a714f6f52486462d98a140c8bf95` when the adjacent checkout is absent. YUP is ISC-licensed; its own license and all fetched dependency licenses remain authoritative.
+YUP is pinned to commit `fa83e8c55664727ae5a53b94a3f6b5b336ce9e57` when the adjacent checkout is absent. YUP is ISC-licensed; its own license and all fetched dependency licenses remain authoritative.
 
 ## Build And Test
 
